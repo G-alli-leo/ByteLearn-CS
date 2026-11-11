@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ByteLearn CS: Data Representation (HLR Engine)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Nunito -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        duoGreen: '#58cc02',
+                        duoGreenDark: '#46a302',
+                        duoCyan: '#1cb0f6',
+                        duoCyanDark: '#1899d6',
+                        duoRed: '#ff4b4b',
+                        duoRedDark: '#ea2b2b',
+                        duoYellow: '#ffc800',
+                        duoYellowDark: '#e5b200',
+                        duoPurple: '#ce82ff',
+                        duoPurpleDark: '#b259f4',
+                        duoDark: '#4b4b4b',
+                        duoGray: '#e5e5e5',
+                        duoLightGray: '#f7f7f7',
+                        duoBorder: '#e5e5e5'
+                    },
+                    fontFamily: {
+                        sans: ['Nunito', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f7f7f7;
+            color: #4b4b4b;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* 3D Chunky Buttons Effect */
+        .btn-3d {
+            transition: all 0.1s ease;
+            position: relative;
+            cursor: pointer;
+            outline: none;
+        }
+        
+        .btn-3d-green {
+            background-color: #58cc02;
+            box-shadow: 0 4px 0 #46a302;
+            color: white;
+            border: 2px solid #46a302;
+        }
+        .btn-3d-green:active:not(:disabled), .btn-3d-green.pressed {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #46a302;
+        }
+
+        .btn-3d-cyan {
+            background-color: #1cb0f6;
+            box-shadow: 0 4px 0 #1899d6;
+            color: white;
+            border: 2px solid #1899d6;
+        }
+        .btn-3d-cyan:active:not(:disabled), .btn-3d-cyan.pressed {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #1899d6;
+        }
+
+        .btn-3d-yellow {
+            background-color: #ffc800;
+            box-shadow: 0 4px 0 #e5b200;
+            color: white;
+            border: 2px solid #e5b200;
+        }
+        .btn-3d-yellow:active:not(:disabled) {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #e5b200;
+        }
+
+        .btn-3d-red {
+            background-color: #ff4b4b;
+            box-shadow: 0 4px 0 #ea2b2b;
+            color: white;
+            border: 2px solid #ea2b2b;
+        }
+        .btn-3d-red:active:not(:disabled) {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #ea2b2b;
+        }
+
+        .btn-3d-gray {
+            background-color: #ffffff;
+            box-shadow: 0 4px 0 #e5e5e5;
+            color: #4b4b4b;
+            border: 2px solid #e5e5e5;
+        }
+        .btn-3d-gray:hover:not(:disabled) {
+            background-color: #f7f7f7;
+        }
+        .btn-3d-gray:active:not(:disabled), .btn-3d-gray.selected {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #e5e5e5;
+        }
+
+        .btn-3d-gray.selected {
+            border-color: #1cb0f6;
+            background-color: #ddf4ff;
+            color: #1899d6;
+            box-shadow: 0 0 0 #1899d6;
+        }
+
+        .btn-3d:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: 0 4px 0 #d0d0d0 !important;
+        }
+
+        /* Sticker Card Style */
+        .sticker-card {
+            border: 3px solid #e5e5e5;
+            border-bottom-width: 5px;
+            border-radius: 16px;
+            background: white;
+        }
+
+        /* Heart Pulse Animation */
+        @keyframes pulse-heart {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.25); }
+            100% { transform: scale(1); }
+        }
+        .heart-bounce {
+            animation: pulse-heart 0.4s ease-in-out 2;
+        }
+
+        /* FOOTER MUTUAL EXCLUSION RULES */
+        .footer-hidden {
+            display: none !important;
+            pointer-events: none !important;
+            z-index: -1 !important;
+            visibility: hidden !important;
+        }
+
+        .footer-active {
+            display: flex !important;
+            pointer-events: auto !important;
+            z-index: 100 !important;
+            visibility: visible !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-[#f7f7f7] pb-28">
+
+    <!-- TOP NAV HEADER -->
+    <header class="sticky top-0 z-40 bg-white border-b-2 border-duoGray px-4 py-3 shadow-sm">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <!-- Brand / Logo -->
+            <div class="flex items-center gap-2 cursor-pointer" onclick="switchTab('learn')">
+                <div class="w-10 h-10 rounded-2xl bg-duoGreen flex items-center justify-center text-white font-black text-xl shadow-[0_3px_0_#46a302] border-2 border-duoGreenDark">
+                    <i class="fa-solid fa-code"></i>
+                </div>
+                <span class="font-black text-2xl tracking-wide text-duoGreen hidden sm:inline">ByteLearn<span class="text-duoCyan">CS</span></span>
+            </div>
+
+            <!-- Stats Bar (Streak, XP, Hearts, Retention) -->
+            <div class="flex items-center gap-4 sm:gap-6 font-extrabold text-lg">
+                <!-- Streak -->
+                <div class="flex items-center gap-1.5 text-orange-500" title="Day Streak">
+                    <i class="fa-solid fa-fire text-2xl animate-bounce"></i>
+                    <span id="stat-streak">1</span>
+                </div>
+                <!-- XP -->
+                <div class="flex items-center gap-1.5 text-duoYellow" title="Total XP">
+                    <i class="fa-solid fa-bolt text-2xl"></i>
+                    <span id="stat-xp">0</span>
+                </div>
+                <!-- Hearts -->
+                <div class="flex items-center gap-1.5 text-duoRed" title="Hearts Left">
+                    <i id="heart-icon" class="fa-solid fa-heart text-2xl"></i>
+                    <span id="stat-hearts">5</span>
+                </div>
+                <!-- HLR Retention Meter -->
+                <div class="hidden md:flex items-center gap-1.5 text-duoCyan cursor-pointer" onclick="switchTab('hlr')" title="Half-Life Regression Retention Score">
+                    <i class="fa-solid fa-brain text-xl"></i>
+                    <span id="stat-retention">100%</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- NAVIGATION TABS -->
+    <div class="bg-white border-b-2 border-duoGray">
+        <div class="max-w-5xl mx-auto flex justify-around sm:justify-start sm:gap-8 px-4 font-bold text-gray-500">
+            <button onclick="switchTab('learn')" id="tab-learn" class="py-3 px-2 border-b-4 border-duoGreen text-duoGreen flex items-center gap-2 font-black transition-all">
+                <i class="fa-solid fa-graduation-cap"></i> Learn
+            </button>
+            <button onclick="switchTab('hlr')" id="tab-hlr" class="py-3 px-2 border-b-4 border-transparent hover:text-duoDark flex items-center gap-2 font-black transition-all">
+                <i class="fa-solid fa-chart-line text-duoCyan"></i> HLR Analytics
+            </button>
+            <button onclick="switchTab('leaderboard')" id="tab-leaderboard" class="py-3 px-2 border-b-4 border-transparent hover:text-duoDark flex items-center gap-2 font-black transition-all">
+                <i class="fa-solid fa-trophy text-duoYellow"></i> Leaderboard
+            </button>
+            <button onclick="switchTab('vault')" id="tab-vault" class="py-3 px-2 border-b-4 border-transparent hover:text-duoDark flex items-center gap-2 font-black transition-all">
+                <i class="fa-solid fa-book-open text-duoPurple"></i> CS Vault
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-grow max-w-4xl w-full mx-auto p-4 sm:p-6 flex flex-col justify-center">
+
+        <!-- VIEW 1: EXERCISE / LEARN VIEW -->
+        <div id="view-learn" class="w-full flex flex-col flex-grow justify-between min-h-[480px]">
+            
+            <!-- Lesson Progress Header -->
+            <div class="w-full flex items-center gap-4 mb-4">
+                <button onclick="resetLessonSession()" class="text-gray-400 hover:text-gray-600 text-xl font-bold" title="Reset Session">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <div class="flex-grow bg-duoGray h-4 rounded-full overflow-hidden border border-gray-300">
+                    <div id="lesson-progress-bar" class="bg-duoGreen h-full w-0 transition-all duration-300 rounded-full"></div>
+                </div>
+                <span id="queue-counter" class="text-xs font-black text-gray-500 bg-gray-200 px-3 py-1 rounded-xl">1/44</span>
+            </div>
+
+            <!-- Active Question Card -->
+            <div id="question-card" class="sticker-card p-6 sm:p-8 flex-grow flex flex-col justify-between mb-4 shadow-sm">
+                <div>
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                        <span id="q-category" class="bg-duoCyan/15 text-duoCyan text-xs font-black px-3 py-1 rounded-full uppercase tracking-wider border border-duoCyan/30">
+                            Data Representation
+                        </span>
+                        <div class="flex items-center gap-2">
+                            <span id="q-type-badge" class="bg-gray-100 text-gray-600 text-xs font-bold px-2.5 py-1 rounded-full uppercase">
+                                MCQ
+                            </span>
+                            <span id="q-hlr-badge" class="bg-purple-100 text-duoPurple text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1" title="Burr Settles HLR Half-Life">
+                                <i class="fa-solid fa-clock-rotate-left"></i> h: <span id="q-hlr-val">1.0d</span> | p: <span id="q-hlr-p">100%</span>
+                            </span>
+                        </div>
+                    </div>
+                    <h2 id="q-text" class="text-xl sm:text-2xl font-extrabold text-duoDark mb-6 leading-relaxed">
+                        Loading exercise...
+                    </h2>
+                </div>
+
+                <!-- Interactive Exercise Output Area -->
+                <div id="interactive-area" class="my-4 min-h-[140px]">
+                    <!-- Dynamic choice buttons or inputs injected here -->
+                </div>
+
+                <!-- Step-by-step concept explanation box (Visible inside question card on error) -->
+                <div id="concept-breakdown-card" class="hidden mt-4 p-4 rounded-xl border-2 border-amber-300 bg-amber-50 text-duoDark text-sm">
+                    <div class="font-black text-amber-900 flex items-center gap-2 mb-1 text-base">
+                        <i class="fa-solid fa-lightbulb text-duoYellow"></i> CS Concept Breakdown:
+                    </div>
+                    <p id="concept-breakdown-text" class="font-bold text-gray-700 leading-relaxed"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: BURR SETTLES & BRENDAN MEEDER (2016) HLR DASHBOARD -->
+        <div id="view-hlr" class="hidden w-full space-y-6">
+            <div class="sticker-card p-6 bg-white">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+                    <div>
+                        <h2 class="text-2xl font-black text-duoDark">Half-Life Regression (HLR) Engine</h2>
+                        <p class="text-sm font-semibold text-gray-500">Exact implementation of Settles & Meeder (ACL 2016) Spaced Repetition Model</p>
+                    </div>
+                    <button onclick="queueWeakItems()" class="btn-3d btn-3d-cyan px-4 py-2 text-sm font-black rounded-xl">
+                        <i class="fa-solid fa-filter mr-1"></i> Review Priority Items (p &lt; 0.70)
+                    </button>
+                </div>
+                
+                <!-- HLR Mathematical Formulas & Parameter Vectors -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 my-4">
+                    <div class="p-4 rounded-xl border-2 border-duoGray bg-duoLightGray">
+                        <span class="text-xs font-extrabold text-gray-400 uppercase">Half-Life Equation</span>
+                        <div class="text-lg font-black text-duoPurple font-mono">h = 2<sup>Θ · x</sup></div>
+                        <p class="text-xs text-gray-500 mt-1">Estimates half-life based on correct & error counts.</p>
+                    </div>
+                    <div class="p-4 rounded-xl border-2 border-duoGray bg-duoLightGray">
+                        <span class="text-xs font-extrabold text-gray-400 uppercase">Recall Probability</span>
+                        <div class="text-lg font-black text-duoCyan font-mono">p = 2<sup>-Δt / h</sup></div>
+                        <p class="text-xs text-gray-500 mt-1">Current retention likelihood based on lag time Δt.</p>
+                    </div>
+                    <div class="p-4 rounded-xl border-2 border-duoGray bg-duoLightGray">
+                        <span class="text-xs font-extrabold text-gray-400 uppercase">Avg Half-Life (h)</span>
+                        <div id="hlr-avg-h" class="text-2xl font-black text-duoGreen font-mono">1.0d</div>
+                        <p class="text-xs text-gray-500 mt-1">Average days until 50% memory decay.</p>
+                    </div>
+                    <div class="p-4 rounded-xl border-2 border-duoGray bg-duoLightGray">
+                        <span class="text-xs font-extrabold text-gray-400 uppercase">SGD Weights (Θ)</span>
+                        <div id="hlr-weights-display" class="text-xs font-mono font-bold text-gray-700 mt-1">
+                            θ₀: 1.00, θ₁: 1.20<br>θ₂: 0.80, θ₃: 0.50
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Memory Retention Table -->
+            <div class="sticker-card p-6 bg-white">
+                <h3 class="text-lg font-black text-duoDark mb-4">Item Memory Retention & Decay Schedule</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm border-collapse">
+                        <thead>
+                            <tr class="border-b-2 border-duoGray text-gray-400 uppercase text-xs">
+                                <th class="py-2.5">Question / Concept</th>
+                                <th class="py-2.5">Attempts (n)</th>
+                                <th class="py-2.5">Acc (c/w)</th>
+                                <th class="py-2.5">Half-Life (h)</th>
+                                <th class="py-2.5">Recall Prob (p)</th>
+                                <th class="py-2.5">Urgency Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hlr-table-body" class="divide-y divide-gray-100 font-bold">
+                            <!-- Injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 3: LEADERBOARD -->
+        <div id="view-leaderboard" class="hidden w-full space-y-6">
+            <div class="sticker-card p-6 bg-white text-center">
+                <div class="w-16 h-16 bg-duoYellow/20 rounded-full flex items-center justify-center mx-auto mb-3 text-duoYellow border-2 border-duoYellow">
+                    <i class="fa-solid fa-trophy text-3xl"></i>
+                </div>
+                <h2 class="text-2xl font-black text-duoDark">Diamond CS League</h2>
+                <p class="text-sm font-semibold text-gray-500">Compete with fellow computer science scholars worldwide</p>
+            </div>
+
+            <div class="sticker-card p-4 bg-white divide-y divide-gray-100" id="leaderboard-list">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+
+        <!-- VIEW 4: CONCEPT VAULT -->
+        <div id="view-vault" class="hidden w-full space-y-4">
+            <div class="sticker-card p-6 bg-white">
+                <h2 class="text-2xl font-black text-duoDark">Data Representation Concept Vault</h2>
+                <p class="text-sm font-semibold text-gray-500 mb-4">Complete Reference Guide for all 44 Kognity CS Exercises</p>
+                <div id="vault-items-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FIXED FOOTER CONTROL BAR (MUTUALLY EXCLUSIVE DESIGN TO PREVENT OVERLAP BUGS) -->
+    <footer class="fixed bottom-0 left-0 right-0 z-40 bg-white border-t-2 border-duoGray p-4 sm:p-5 shadow-lg">
+        
+        <!-- DEFAULT FOOTER STATE (Question Mode: Skip & Check Buttons) -->
+        <div id="default-footer" class="max-w-4xl mx-auto flex items-center justify-between gap-4 footer-active">
+            <button id="skip-btn" onclick="skipQuestion()" class="btn-3d btn-3d-gray px-6 py-3.5 font-black text-gray-500 rounded-2xl uppercase tracking-wider text-sm">
+                Skip
+            </button>
+            <button id="check-btn" onclick="checkAnswer()" class="btn-3d btn-3d-green px-10 py-3.5 font-black text-white rounded-2xl uppercase tracking-wider text-base flex-grow sm:flex-grow-0">
+                Check Answer
+            </button>
+        </div>
+
+        <!-- FEEDBACK FOOTER STATE (Feedback Mode: Status, Explanation Trigger & Continue Button) -->
+        <div id="feedback-footer" class="max-w-4xl mx-auto flex-col sm:flex-row items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl footer-hidden transition-all duration-200">
+            <div class="flex items-center gap-4 w-full sm:w-auto">
+                <div id="feedback-icon-box" class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl text-white font-black flex-shrink-0">
+                    <i id="feedback-icon" class="fa-solid fa-check"></i>
+                </div>
+                <div>
+                    <h3 id="feedback-title" class="text-xl font-black">Awesome!</h3>
+                    <p id="feedback-msg" class="text-sm font-bold opacity-90"></p>
+                </div>
+            </div>
+            <button id="continue-btn" onclick="nextQuestion()" class="btn-3d w-full sm:w-auto px-10 py-3.5 font-black text-white rounded-2xl uppercase tracking-wider text-base">
+                Continue
+            </button>
+        </div>
+    </footer>
+
+    <!-- MODAL: VARIABLE REWARD CHEST -->
+    <div id="reward-modal" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="sticker-card p-8 bg-white max-w-sm w-full text-center space-y-4">
+            <div class="w-20 h-20 bg-duoYellow/20 text-duoYellow rounded-full flex items-center justify-center mx-auto text-4xl border-4 border-duoYellow animate-bounce">
+                <i class="fa-solid fa-box-open"></i>
+            </div>
+            <h3 class="text-2xl font-black text-duoDark">Bonus Reward!</h3>
+            <p id="reward-desc" class="text-base font-bold text-gray-600">You opened a CS Knowledge Chest!</p>
+            <div id="reward-badge" class="inline-block bg-duoYellow text-white font-black text-xl px-6 py-2 rounded-2xl shadow-[0_4px_0_#e5b200]">
+                +15 XP Bonus!
+            </div>
+            <div>
+                <button onclick="closeRewardModal()" class="btn-3d btn-3d-green w-full py-3 text-lg font-black rounded-2xl uppercase">
+                    Claim Reward
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: GAME OVER / OUT OF HEARTS -->
+    <div id="gameover-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="sticker-card p-8 bg-white max-w-md w-full text-center space-y-4">
+            <div class="w-20 h-20 bg-duoRed/20 text-duoRed rounded-full flex items-center justify-center mx-auto text-4xl border-4 border-duoRed">
+                <i class="fa-solid fa-heart-crack animate-pulse"></i>
+            </div>
+            <h3 class="text-2xl font-black text-duoDark">Out of Hearts!</h3>
+            <p class="text-sm font-bold text-gray-600">Don't worry! Practice mode allows you to restore your hearts by reviewing high-priority CS concepts.</p>
+            <button onclick="refillHeartsPractice()" class="btn-3d btn-3d-cyan w-full py-3.5 text-lg font-black rounded-2xl uppercase">
+                <i class="fa-solid fa-arrows-rotate mr-2"></i> Refill Hearts (+5 ❤️)
+            </button>
+        </div>
+    </div>
+
+    <!-- WEB AUDIO API SYNTHESIZER -->
+    <script>
+        class AudioEngine {
+            constructor() {
+                this.ctx = null;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playCorrect() {
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                
+                // Duolingo bright major chord chime (E5 -> G#5 -> B5)
+                osc.frequency.setValueAtTime(659.25, now);
+                osc.frequency.setValueAtTime(830.61, now + 0.08);
+                osc.frequency.setValueAtTime(987.77, now + 0.16);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
+
+            playWrong() {
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+
+                osc.frequency.setValueAtTime(160, now);
+                osc.frequency.setValueAtTime(110, now + 0.12);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            }
+
+            playBonus() {
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+
+                osc.frequency.setValueAtTime(523.25, now);
+                osc.frequency.linearRampToValueAtTime(1046.50, now + 0.3);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
+        }
+
+        const audio = new AudioEngine();
+    </script>
+
+    <!-- COMPLETE 44 KOGNITY CS EXERCISES DATASET -->
+    <script>
+        const RAW_KOGNITY_DATA = [
+            // Number Systems (1-11)
+            { id: 1, type: "fill_blank", category: "Number Systems", q: "A _______ is a high-speed area of memory located within the CPU.", answer: "register", explanation: "A register is a small, ultra-high-speed area of memory within the CPU, used to temporarily store data during the fetch-decode-execute cycle." },
+            { id: 2, type: "text_input", category: "Number Systems", q: "Convert the following negative denary integer into 8-bit two's complement: -11", answer: "11110101", explanation: "Start with positive 11 (00001011). Invert bits -> 11110100. Add 1 -> 11110101." },
+            { id: 3, type: "text_input", category: "Number Systems", q: "Convert the following positive denary integer into 8-bit two's complement value: 76", answer: "01001100", explanation: "Representing positive denary integer using two's complement uses all 8 bits (64+8+4 = 76): 01001100." },
+            { id: 4, type: "text_input", category: "Number Systems", q: "What would be the new binary number after performing a 2-bit logical right shift on: 00110001", answer: "00001100", explanation: "In a logical right shift, bits shifted off the right end are lost, and zeros are added at the left end." },
+            { id: 5, type: "text_input", category: "Number Systems", q: "What would be the new binary number after performing a 1-bit logical left shift on: 00110001", answer: "01100010", explanation: "In a logical left shift, bits shift left, leftmost bit is lost, and zero is appended to the right." },
+            { id: 6, type: "mcq", category: "Number Systems", q: "The _______ number system is the human readable number system, which consists of 10 digits.", options: ["denary", "binary", "hexadecimal", "octal"], answer: "denary", explanation: "Denary (Base-10) uses 10 digits (0-9) and is the standard human-readable number system." },
+            { id: 7, type: "mcq", category: "Number Systems", q: "What would happen if the system tried to store a denary value greater than 255 in an 8-bit register?", options: ["Overflow Error", "Underflow Error", "Syntax Error", "Logic Error"], answer: "Overflow Error", explanation: "An 8-bit register can store up to 255 (2^8 - 1). Values > 255 cause an Overflow Error." },
+            { id: 8, type: "text_input", category: "Number Systems", q: "What is the result of adding 10101010 to 00110011 in binary?", answer: "11011101", explanation: "10101010 (170) + 00110011 (51) = 11011101 (221)." },
+            { id: 9, type: "mcq", category: "Number Systems", q: "One example of hexadecimal usage is...", options: ["Displaying error messages", "Machine Code Programming", "High-Level language programming", "Designing presentation files"], answer: "Displaying error messages", explanation: "Hexadecimal is frequently used for memory addresses and displaying system error messages." },
+            { id: 10, type: "mcq", category: "Number Systems", q: "Which of the following is a benefit of using hexadecimal instead of binary?", options: ["Shorter representation on the screen", "Uses less memory space", "Faster program execution", "Faster data transmission"], answer: "Shorter representation on the screen", explanation: "Hexadecimal represents binary strings in far fewer characters, reducing screen clutter and human reading errors." },
+            { id: 11, type: "fill_blank", category: "Number Systems", q: "An overflow error will most likely cause the computer system to _______.", answer: "crash", explanation: "Overflow errors occur when a register exceeds capacity, which often causes system crashes." },
+
+            // Text, Sound and Images (12-29)
+            { id: 12, type: "fill_blank", category: "Text, Sound & Images", q: "All image file types, such as .jpg and .gif, use different _______ methods to store image data as binary.", answer: "encoding", explanation: "Image file formats use distinct encoding algorithms to store graphics data in binary format." },
+            { id: 13, type: "fill_blank", category: "Text, Sound & Images", q: "In the physical world, sounds are _______ waves that are constantly changing.", answer: "analogue", explanation: "Acoustic sound in the physical universe consists of continuous analogue waves." },
+            { id: 14, type: "fill_blank", category: "Text, Sound & Images", q: "Emojis can be represented using the _______ character set.", answer: "Unicode", explanation: "Unicode expands beyond standard ASCII to include global characters, symbols, and emojis." },
+            { id: 15, type: "mcq", category: "Text, Sound & Images", q: "Which of the following file types is an example of a sound file?", options: [".mp3", ".jpg", ".png", ".gif"], answer: ".mp3", explanation: ".mp3 is an audio format, while .jpg, .png, and .gif are graphic formats." },
+            { id: 16, type: "text_input", category: "Text, Sound & Images", q: "The number of characters that can be represented using standard 7-bit ASCII is...", answer: "128", explanation: "Standard 7-bit ASCII can represent 2^7 = 128 unique characters." },
+            { id: 17, type: "text_input", category: "Text, Sound & Images", q: "The computer stores 'A' in binary as 01000001 (65 denary). What is the denary number of 'B'?", answer: "66", explanation: "Character codes are sequential. If 'A' = 65, then 'B' = 66." },
+            { id: 18, type: "text_input", category: "Text, Sound & Images", q: "Calculate how many bits are needed to store the phrase 'I love computer' (15 characters including spaces).", answer: "120", explanation: "15 characters * 8 bits per character = 120 total bits." },
+            { id: 19, type: "mcq", category: "Text, Sound & Images", q: "What does ASCII stand for?", options: ["American standard code for information interchange", "Automated system code for internet interchange", "American standard control for image integration", "Applied system digital interchange"], answer: "American standard code for information interchange", explanation: "ASCII = American Standard Code for Information Interchange." },
+            { id: 20, type: "fill_blank", category: "Text, Sound & Images", q: "The higher the colour depth and resolution, the more data has to be stored. This means increasing these values will _______ the file size.", answer: "increase", explanation: "Higher pixel density and color depth require storing proportionally more data bits." },
+            { id: 21, type: "text_input", category: "Text, Sound & Images", q: "Calculate how many bits are needed to represent 512 colours in an image.", answer: "9", explanation: "log2(512) = 9 bits per pixel." },
+            { id: 22, type: "mcq", category: "Text, Sound & Images", q: "In images, what is the number of bits per pixel called?", options: ["Colour depth", "Sample resolution", "Aspect ratio", "Frequency"], answer: "Colour depth", explanation: "Colour depth defines how many bits are dedicated to storing colors for each pixel." },
+            { id: 23, type: "fill_blank", category: "Text, Sound & Images", q: "Pixel colour value can be represented using hexadecimal. Black is 000000, while White is _______.", answer: "FFFFFF", explanation: "FFFFFF represents maximum intensity across Red, Green, and Blue channels." },
+            { id: 24, type: "mcq", category: "Text, Sound & Images", q: "What is being described if a picture is said to be 1080 x 720?", options: ["Resolution", "Colour depth", "Sample rate", "Bitrate"], answer: "Resolution", explanation: "Image resolution specifies the width and height of the pixel grid." },
+            { id: 25, type: "fill_blank", category: "Text, Sound & Images", q: "The higher the sample rate and sample resolution, the more accurate the sound will be, but the file size will be much _______.", answer: "larger", explanation: "Capturing more audio samples per second with finer resolution creates significantly larger files." },
+            { id: 26, type: "mcq", category: "Text, Sound & Images", q: "The more bits that are used to measure the analogue wave, the...", options: ["More accurate the sound, and the bigger the file size will be", "Less accurate sound and smaller file size", "No change to quality", "Lower sampling resolution"], answer: "More accurate the sound, and the bigger the file size will be", explanation: "Higher sampling resolution improves acoustic accuracy while increasing file size." },
+            { id: 27, type: "mcq", category: "Text, Sound & Images", q: "The number of bits used to record each measurement during sound sampling is called...", options: ["Sample resolution", "Colour depth", "Bandwidth", "Bit rate"], answer: "Sample resolution", explanation: "Sample resolution (bit depth) specifies the bit count used per audio sample." },
+            { id: 28, type: "mcq", category: "Text, Sound & Images", q: "Digital sounds used by computers are made up of which of the following?", options: ["Discrete signals", "Continuous analogue waves", "Pure magnetic poles", "Optical rays"], answer: "Discrete signals", explanation: "Digital audio is composed of a series of discrete numerical measurements." },
+            { id: 29, type: "fill_blank", category: "Text, Sound & Images", q: "The ASCII character set was replaced by _______ to fully encompass global languages.", answer: "unicode", explanation: "Unicode replaces ASCII to accommodate universal alphabets, symbols, and emojis." },
+
+            // Data Storage & Compression (30-44)
+            { id: 30, type: "fill_blank", category: "Data Storage & Compression", q: "Two drawbacks of using lossless compression rather than lossy compression are the _______ file size and slower transmission speed.", answer: "larger", explanation: "Because lossless preserves all data, file sizes remain larger than lossy compression, resulting in slower transfer speeds." },
+            { id: 31, type: "mcq", category: "Data Storage & Compression", q: "Which of the following does NOT describe how lossy compression is used to reduce sound file size?", options: ["Data will not be removed", "Removes imperceptible frequencies", "Reduces bit depth", "Applies perceptual coding"], answer: "Data will not be removed", explanation: "Lossy compression explicitly and permanently removes unneeded file data." },
+            { id: 32, type: "text_input", category: "Data Storage & Compression", q: "State the name of the lossless compression technique that encodes 'runs' of repeating data:", answer: "Run Length Encoding", explanation: "Run Length Encoding (RLE) compresses sequences by storing a single value and its repetition count." },
+            { id: 33, type: "fill_blank", category: "Data Storage & Compression", q: "In _______ compression, data will not be lost from the original file.", answer: "lossless", explanation: "Lossless compression guarantees full bit-for-bit reconstruction of original data." },
+            { id: 34, type: "mcq", category: "Data Storage & Compression", q: "Which of the following is the effect of compressing a movie file using lossy compression?", options: ["Decreased file size and quality", "Increased file size and quality", "No quality change", "Zero size reduction"], answer: "Decreased file size and quality", explanation: "Lossy compression dramatically reduces file size at the cost of lowered visual/audio quality." },
+            { id: 35, type: "fill_blank", category: "Data Storage & Compression", q: "Most compressed file types fall into two categories: lossy and _______.", answer: "lossless", explanation: "Compression techniques divide into lossy (discarded data) and lossless (preserved data)." },
+            { id: 36, type: "fill_blank", category: "Data Storage & Compression", q: "Files that have had no compression applied are called _______ files.", answer: "raw", explanation: "Raw files store uncompressed, unedited original data." },
+            { id: 37, type: "fill_blank", category: "Data Storage & Compression", q: "Compression is normally used for three file types: sound files, _______ files and video files.", answer: "image", explanation: "Sound, image, and video media files represent the primary targets for file compression." },
+            { id: 38, type: "mcq", category: "Data Storage & Compression", q: "Which of the following is NOT a benefit of file compression?", options: ["Reducing the file quality", "Save storage space", "Increase transmission speed", "Reduce bandwidth usage"], answer: "Reducing the file quality", explanation: "Quality loss is a trade-off of lossy techniques, not a desired benefit of compression." },
+            { id: 39, type: "fill_blank", category: "Data Storage & Compression", q: "A compression _______ is a simple set of instructions applied to reduce file size.", answer: "algorithm", explanation: "A compression algorithm is the programmatic instruction set used to compress data." },
+            { id: 40, type: "text_input", category: "Data Storage & Compression", q: "You have a 16 GiB drive. How many 128 KiB photos can it hold? (16 * 1024 * 1024 / 128)", answer: "131072", explanation: "(16 GiB * 1024 MiB/GiB * 1024 KiB/MiB) / 128 KiB = 131,072 photographs." },
+            { id: 41, type: "text_input", category: "Data Storage & Compression", q: "Calculate file size of 3 min sound (44.1 kHz, 8-bit) in KiB: (3*60*44100*8 / 8 / 1024)", answer: "7752", explanation: "3 mins = 180s. 180 * 44100 Hz = 7,938,000 bytes. 7,938,000 / 1024 = 7751.95 KiB (~7752)." },
+            { id: 42, type: "text_input", category: "Data Storage & Compression", q: "Calculate file size of 50 sec sound (44.1 kHz, 8-bit) in KiB: (50*44100*8 / 8 / 1024)", answer: "2153", explanation: "50s * 44100 Hz = 2,205,000 bytes. 2,205,000 / 1024 = 2153.3 KiB (~2153)." },
+            { id: 43, type: "text_input", category: "Data Storage & Compression", q: "Calculate image size 2048 x 720 (256 colours = 8 bit) in MiB: (2048*720*1 / 1024 / 1024)", answer: "1.41", explanation: "2048 * 720 = 1,474,560 pixels. 8 bits = 1 byte/pixel. 1,474,560 / 1024 / 1024 = 1.406 MiB (~1.41)." },
+            { id: 44, type: "text_input", category: "Data Storage & Compression", q: "1 GiB = 2^x bytes. What is x?", answer: "30", explanation: "1 KiB = 2^10, 1 MiB = 2^20, 1 GiB = 2^30 bytes." }
+        ];
+    </script>
+
+    <!-- BURR SETTLES & BRENDAN MEEDER (2016) HLR ENGINE & APPLICATION LOGIC -->
+    <script>
+        // User game stats
+        let userStats = {
+            streak: 1,
+            xp: 0,
+            hearts: 5,
+            maxHearts: 5
+        };
+
+        // Settles & Meeder (ACL 2016) Model Weights vector Theta: [theta_0, theta_1, theta_2, theta_3]
+        // theta_0: base half-life offset
+        // theta_1: weight for sqrt(correct)
+        // theta_2: weight for sqrt(incorrect)
+        // theta_3: weight for item difficulty
+        let HLR_WEIGHTS = [1.00, 1.20, 0.80, 0.50];
+        const LEARNING_RATE = 0.05;
+        const L2_REG = 0.001;
+
+        // Per-item HLR memory tracking
+        let hlrItemsMap = {};
+
+        // Active practice state
+        let activeQueue = [];
+        let currentQueueIndex = 0;
+        let selectedOptionValue = null;
+
+        // Initialize Application
+        window.onload = function() {
+            initHLRModel();
+            buildQueue();
+            renderQuestion();
+            updateStatsDisplay();
+            renderLeaderboard();
+            renderVault();
+            renderHLRDashboard();
+        };
+
+        // Initialize Half-Life parameters for each CS concept
+        function initHLRModel() {
+            RAW_KOGNITY_DATA.forEach(item => {
+                hlrItemsMap[item.id] = {
+                    id: item.id,
+                    n_correct: 0,
+                    n_incorrect: 0,
+                    n_total: 0,
+                    difficulty: item.type === 'text_input' ? 1.2 : 0.8,
+                    lastReviewed: Date.now() - Math.random() * 86400000 * 2, // Random 0-2 day offset
+                    h_hat: 1.0,
+                    p_hat: 1.0
+                };
+                recalculateItemHLR(item.id);
+            });
+        }
+
+        // Calculate feature vector x = [1, sqrt(c), sqrt(w), difficulty]
+        function getFeatureVector(itemState) {
+            return [
+                1.0,
+                Math.sqrt(itemState.n_correct),
+                Math.sqrt(itemState.n_incorrect),
+                itemState.difficulty
+            ];
+        }
+
+        // Compute Settles & Meeder (2016) Estimated Half-Life h_hat = 2^(Theta . x)
+        function computeHalfLife(itemState) {
+            const x = getFeatureVector(itemState);
+            let dotProduct = 0;
+            for (let i = 0; i < HLR_WEIGHTS.length; i++) {
+                // theta_0 + theta_1*sqrt(c) - theta_2*sqrt(w) - theta_3*diff
+                const sign = (i === 2 || i === 3) ? -1 : 1;
+                dotProduct += sign * HLR_WEIGHTS[i] * x[i];
+            }
+            // Half-life in days bounded between 0.1 and 30 days
+            const h = Math.pow(2, dotProduct);
+            return Math.max(0.1, Math.min(30.0, h));
+        }
+
+        // Compute Estimated Recall Probability p_hat = 2^(-delta_t / h_hat)
+        function computeRecallProbability(itemState) {
+            const now = Date.now();
+            const deltaDays = Math.max(0.001, (now - itemState.lastReviewed) / (1000 * 60 * 60 * 24));
+            const p = Math.pow(2, -deltaDays / itemState.h_hat);
+            return Math.max(0.05, Math.min(1.0, p));
+        }
+
+        // Recalculate item metrics
+        function recalculateItemHLR(itemId) {
+            const state = hlrItemsMap[itemId];
+            if (!state) return;
+            state.h_hat = computeHalfLife(state);
+            state.p_hat = computeRecallProbability(state);
+        }
+
+        // Stochastic Gradient Descent (SGD) Parameter Update rule on attempt outcome y in {0, 1}
+        function updateHLROnAttempt(itemId, outcomeY) {
+            const state = hlrItemsMap[itemId];
+            if (!state) return;
+
+            const now = Date.now();
+            const deltaDays = Math.max(0.001, (now - state.lastReviewed) / (1000 * 60 * 60 * 24));
+            const p_hat = computeRecallProbability(state);
+            const h_hat = state.h_hat;
+            const x = getFeatureVector(state);
+
+            // Derivative dp/dTheta_j = p_hat * (ln 2)^2 * (delta_t / h_hat) * x_j
+            const ln2 = Math.LN2;
+            const commonGradFactor = p_hat * (ln2 * ln2) * (deltaDays / h_hat);
+
+            // Loss L = (p_hat - y)^2
+            // dL/dTheta_j = 2 * (p_hat - y) * dp/dTheta_j
+            for (let j = 0; j < HLR_WEIGHTS.length; j++) {
+                const sign = (j === 2 || j === 3) ? -1 : 1;
+                const dP_dTheta_j = commonGradFactor * sign * x[j];
+                const dL_dTheta_j = 2 * (p_hat - outcomeY) * dP_dTheta_j;
+
+                // SGD Update: Theta_j = Theta_j - lr * dL/dTheta_j - lr * lambda * Theta_j
+                HLR_WEIGHTS[j] = HLR_WEIGHTS[j] - LEARNING_RATE * dL_dTheta_j - LEARNING_RATE * L2_REG * HLR_WEIGHTS[j];
+                // Keep positive boundaries
+                HLR_WEIGHTS[j] = Math.max(0.01, HLR_WEIGHTS[j]);
+            }
+
+            // Update item counts
+            state.n_total += 1;
+            if (outcomeY === 1) state.n_correct += 1;
+            else state.n_incorrect += 1;
+            state.lastReviewed = now;
+
+            recalculateItemHLR(itemId);
+            renderHLRDashboard();
+        }
+
+        // Sort practice queue based on recall urgency (lowest p_hat first)
+        function buildQueue() {
+            activeQueue = [...RAW_KOGNITY_DATA];
+            activeQueue.sort((a, b) => {
+                const pA = computeRecallProbability(hlrItemsMap[a.id]);
+                const pB = computeRecallProbability(hlrItemsMap[b.id]);
+                return pA - pB;
+            });
+            currentQueueIndex = 0;
+        }
+
+        // Render current exercise card
+        function renderQuestion() {
+            // ALWAYS RESET FOOTER TO QUESTION MODE (SKIP & CHECK BUTTONS)
+            setFootersToQuestionMode();
+
+            const item = activeQueue[currentQueueIndex];
+            if (!item) return;
+
+            selectedOptionValue = null;
+            document.getElementById('concept-breakdown-card').classList.add('hidden');
+
+            // Progress Bar Update
+            const progressPct = ((currentQueueIndex + 1) / activeQueue.length) * 100;
+            document.getElementById('lesson-progress-bar').style.width = `${progressPct}%`;
+            document.getElementById('queue-counter').innerText = `${currentQueueIndex + 1}/${activeQueue.length}`;
+
+            // Category & Badge Updates
+            document.getElementById('q-category').innerText = item.category;
+            document.getElementById('q-type-badge').innerText = item.type.replace('_', ' ');
+            document.getElementById('q-text').innerText = item.q;
+
+            const hlrState = hlrItemsMap[item.id];
+            recalculateItemHLR(item.id);
+            document.getElementById('q-hlr-val').innerText = `${hlrState.h_hat.toFixed(1)}d`;
+            document.getElementById('q-hlr-p').innerText = `${Math.round(hlrState.p_hat * 100)}%`;
+
+            // Render Dynamic Interactive Area
+            const area = document.getElementById('interactive-area');
+            area.innerHTML = '';
+
+            if (item.type === 'mcq') {
+                const grid = document.createElement('div');
+                grid.className = 'grid grid-cols-1 sm:grid-cols-2 gap-3.5';
+
+                item.options.forEach((opt, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn-3d btn-3d-gray p-4 rounded-2xl text-left font-bold text-base flex items-center gap-3 w-full border-2';
+                    btn.innerHTML = `<span class="w-7 h-7 rounded-xl bg-gray-200 text-gray-700 flex items-center justify-center font-black text-xs">${idx + 1}</span> <span>${opt}</span>`;
+                    btn.onclick = () => {
+                        document.querySelectorAll('#interactive-area button').forEach(b => b.classList.remove('selected'));
+                        btn.classList.add('selected');
+                        selectedOptionValue = opt;
+                    };
+                    grid.appendChild(btn);
+                });
+                area.appendChild(grid);
+            } 
+            else if (item.type === 'fill_blank' || item.type === 'text_input') {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'space-y-3';
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.id = 'text-answer-input';
+                input.placeholder = 'Type your solution here...';
+                input.className = 'w-full p-4 rounded-2xl border-2 border-duoGray font-bold text-lg text-duoDark focus:border-duoCyan focus:outline-none focus:ring-2 focus:ring-duoCyan/20';
+
+                input.onkeyup = (e) => {
+                    selectedOptionValue = e.target.value.trim();
+                    if (e.key === 'Enter') checkAnswer();
+                };
+
+                wrapper.appendChild(input);
+                area.appendChild(wrapper);
+                setTimeout(() => input.focus(), 100);
+            }
+        }
+
+        // MUTUALLY EXCLUSIVE FOOTER CONTROLLER (Prevents blocking bug completely)
+        function setFootersToQuestionMode() {
+            const defFooter = document.getElementById('default-footer');
+            const feedFooter = document.getElementById('feedback-footer');
+
+            // Show default footer
+            defFooter.className = "max-w-4xl mx-auto flex items-center justify-between gap-4 footer-active";
+            // Completely hide & disable feedback footer
+            feedFooter.className = "max-w-4xl mx-auto flex-col sm:flex-row items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl footer-hidden";
+        }
+
+        function setFootersToFeedbackMode(isCorrect, targetAnswer, explanation) {
+            const defFooter = document.getElementById('default-footer');
+            const feedFooter = document.getElementById('feedback-footer');
+
+            // Completely hide & disable default footer
+            defFooter.className = "max-w-4xl mx-auto flex items-center justify-between gap-4 footer-hidden";
+
+            // Configure feedback elements
+            const iconBox = document.getElementById('feedback-icon-box');
+            const icon = document.getElementById('feedback-icon');
+            const titleElem = document.getElementById('feedback-title');
+            const msgElem = document.getElementById('feedback-msg');
+            const continueBtn = document.getElementById('continue-btn');
+
+            if (isCorrect) {
+                feedFooter.className = "max-w-4xl mx-auto flex-col sm:flex-row items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-green-100 border-2 border-duoGreen text-green-900 footer-active";
+                iconBox.className = "w-12 h-12 rounded-2xl flex items-center justify-center text-2xl text-white font-black flex-shrink-0 bg-duoGreen shadow-[0_3px_0_#46a302]";
+                icon.className = "fa-solid fa-check";
+                titleElem.innerText = "Excellent!";
+                msgElem.innerText = "+10 XP | Memory Half-Life Extended!";
+                continueBtn.className = "btn-3d btn-3d-green w-full sm:w-auto px-10 py-3.5 font-black text-white rounded-2xl uppercase tracking-wider text-base";
+            } else {
+                feedFooter.className = "max-w-4xl mx-auto flex-col sm:flex-row items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-red-100 border-2 border-duoRed text-red-900 footer-active";
+                iconBox.className = "w-12 h-12 rounded-2xl flex items-center justify-center text-2xl text-white font-black flex-shrink-0 bg-duoRed shadow-[0_3px_0_#ea2b2b]";
+                icon.className = "fa-solid fa-xmark";
+                titleElem.innerText = `Correct Answer: ${targetAnswer}`;
+                msgElem.innerText = "Concept scheduled for immediate review!";
+                continueBtn.className = "btn-3d btn-3d-red w-full sm:w-auto px-10 py-3.5 font-black text-white rounded-2xl uppercase tracking-wider text-base";
+            }
+        }
+
+        // Check Answer Logic
+        function checkAnswer() {
+            if (userStats.hearts <= 0) {
+                showGameOver();
+                return;
+            }
+
+            const item = activeQueue[currentQueueIndex];
+            if (!item) return;
+
+            if (item.type === 'fill_blank' || item.type === 'text_input') {
+                const inputElem = document.getElementById('text-answer-input');
+                if (inputElem) selectedOptionValue = inputElem.value.trim();
+            }
+
+            if (!selectedOptionValue) {
+                const inputElem = document.getElementById('text-answer-input');
+                if (inputElem) inputElem.classList.add('border-duoRed');
+                return;
+            }
+
+            // Standardize comparison
+            const normSelected = selectedOptionValue.toLowerCase().replace(/[^a-z0-9.]/g, '');
+            const normTarget = item.answer.toLowerCase().replace(/[^a-z0-9.]/g, '');
+            const isCorrect = (normSelected === normTarget) || (normSelected.includes(normTarget));
+
+            // Execute HLR SGD Update
+            updateHLROnAttempt(item.id, isCorrect ? 1 : 0);
+
+            if (isCorrect) {
+                audio.playCorrect();
+                confetti({ particleCount: 35, spread: 60, origin: { y: 0.85 } });
+
+                userStats.xp += 10;
+                updateStatsDisplay();
+
+                setFootersToFeedbackMode(true, item.answer, item.explanation);
+
+                // 20% Random Reward Chest Chance
+                if (Math.random() < 0.20) {
+                    setTimeout(() => triggerRewardModal(), 500);
+                }
+            } else {
+                audio.playWrong();
+                userStats.hearts = Math.max(0, userStats.hearts - 1);
+                updateStatsDisplay();
+
+                // Re-inject failed exercise into queue for immediate reinforcement
+                activeQueue.splice(currentQueueIndex + 2, 0, item);
+
+                setFootersToFeedbackMode(false, item.answer, item.explanation);
+
+                // Show step-by-step breakdown card in question view
+                const breakdownCard = document.getElementById('concept-breakdown-card');
+                document.getElementById('concept-breakdown-text').innerText = item.explanation;
+                breakdownCard.classList.remove('hidden');
+
+                if (userStats.hearts <= 0) {
+                    setTimeout(() => showGameOver(), 1000);
+                }
+            }
+        }
+
+        // Advance to next exercise (Connected to Continue & Skip)
+        function nextQuestion() {
+            currentQueueIndex += 1;
+            if (currentQueueIndex >= activeQueue.length) {
+                buildQueue(); // Re-sort queue based on updated HLR retention probabilities
+            }
+            renderQuestion();
+        }
+
+        function skipQuestion() {
+            nextQuestion();
+        }
+
+        function updateStatsDisplay() {
+            document.getElementById('stat-streak').innerText = userStats.streak;
+            document.getElementById('stat-xp').innerText = userStats.xp;
+
+            const heartElem = document.getElementById('stat-hearts');
+            heartElem.innerText = userStats.hearts;
+            if (userStats.hearts <= 1) {
+                document.getElementById('heart-icon').classList.add('heart-bounce');
+            } else {
+                document.getElementById('heart-icon').classList.remove('heart-bounce');
+            }
+
+            // Calculate overall HLR retention score across all 44 items
+            let totalP = 0;
+            RAW_KOGNITY_DATA.forEach(item => {
+                totalP += computeRecallProbability(hlrItemsMap[item.id]);
+            });
+            const avgP = Math.round((totalP / RAW_KOGNITY_DATA.length) * 100);
+            document.getElementById('stat-retention').innerText = `${avgP}%`;
+        }
+
+        // Render Burr Settles HLR Analytics Dashboard
+        function renderHLRDashboard() {
+            const tbody = document.getElementById('hlr-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            let totalH = 0;
+            RAW_KOGNITY_DATA.forEach(item => {
+                const state = hlrItemsMap[item.id];
+                recalculateItemHLR(item.id);
+                totalH += state.h_hat;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 border-b border-gray-100";
+
+                let statusBadge = `<span class="bg-green-100 text-duoGreen text-xs px-2.5 py-1 rounded-full font-black">Strong Memory</span>`;
+                if (state.p_hat < 0.70) {
+                    statusBadge = `<span class="bg-red-100 text-duoRed text-xs px-2.5 py-1 rounded-full font-black">Review Urgently</span>`;
+                } else if (state.p_hat < 0.85) {
+                    statusBadge = `<span class="bg-amber-100 text-duoYellowDark text-xs px-2.5 py-1 rounded-full font-black">Decaying</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="py-3 text-duoDark font-bold max-w-xs truncate" title="${item.q}">${item.q}</td>
+                    <td class="py-3 text-gray-600">${state.n_total}</td>
+                    <td class="py-3 text-gray-600">${state.n_correct}/${state.n_incorrect}</td>
+                    <td class="py-3 font-mono text-duoPurple">${state.h_hat.toFixed(2)}d</td>
+                    <td class="py-3">
+                        <div class="flex items-center gap-2">
+                            <div class="w-16 bg-gray-200 h-2.5 rounded-full overflow-hidden">
+                                <div class="bg-duoCyan h-full" style="width: ${Math.round(state.p_hat * 100)}%"></div>
+                            </div>
+                            <span class="text-xs font-mono text-gray-600">${Math.round(state.p_hat * 100)}%</span>
+                        </div>
+                    </td>
+                    <td class="py-3">${statusBadge}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const avgH = (totalH / RAW_KOGNITY_DATA.length).toFixed(1);
+            document.getElementById('hlr-avg-h').innerText = `${avgH}d`;
+            document.getElementById('hlr-weights-display').innerHTML = `
+                θ₀ (Base): ${HLR_WEIGHTS[0].toFixed(2)} | θ₁ (Acc): ${HLR_WEIGHTS[1].toFixed(2)}<br>
+                θ₂ (Err): ${HLR_WEIGHTS[2].toFixed(2)} | θ₃ (Diff): ${HLR_WEIGHTS[3].toFixed(2)}
+            `;
+        }
+
+        // Filter active queue for items with recall probability p < 0.70
+        function queueWeakItems() {
+            activeQueue = RAW_KOGNITY_DATA.filter(item => computeRecallProbability(hlrItemsMap[item.id]) < 0.70);
+            if (activeQueue.length === 0) {
+                activeQueue = [...RAW_KOGNITY_DATA];
+            }
+            currentQueueIndex = 0;
+            switchTab('learn');
+            renderQuestion();
+        }
+
+        // Render Leaderboard
+        function renderLeaderboard() {
+            const list = document.getElementById('leaderboard-list');
+            if (!list) return;
+
+            const leaders = [
+                { name: "Ada Lovelace", xp: userStats.xp + 450, avatar: "👩‍💻" },
+                { name: "Alan Turing", xp: userStats.xp + 320, avatar: "👨‍💻" },
+                { name: "You (CS Scholar)", xp: userStats.xp, avatar: "⚡", isUser: true },
+                { name: "Claude Shannon", xp: Math.max(20, userStats.xp - 50), avatar: "🤖" },
+                { name: "Grace Hopper", xp: Math.max(10, userStats.xp - 110), avatar: "🚀" }
+            ];
+
+            leaders.sort((a, b) => b.xp - a.xp);
+            list.innerHTML = '';
+
+            leaders.forEach((l, idx) => {
+                const item = document.createElement('div');
+                item.className = `flex items-center justify-between p-3.5 rounded-xl ${l.isUser ? 'bg-duoCyan/10 border-2 border-duoCyan' : ''}`;
+                item.innerHTML = `
+                    <div class="flex items-center gap-4">
+                        <span class="font-black text-lg w-6 text-center ${idx === 0 ? 'text-duoYellow' : 'text-gray-400'}">#${idx + 1}</span>
+                        <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-xl border border-gray-300">${l.avatar}</div>
+                        <div>
+                            <div class="font-black text-duoDark">${l.name}</div>
+                            <div class="text-xs text-gray-400 font-bold">Data Representation League</div>
+                        </div>
+                    </div>
+                    <div class="font-black text-duoYellow flex items-center gap-1 text-base">
+                        <i class="fa-solid fa-bolt"></i> ${l.xp} XP
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        // Render Vault
+        function renderVault() {
+            const container = document.getElementById('vault-items-container');
+            if (!container) return;
+            container.innerHTML = '';
+
+            RAW_KOGNITY_DATA.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "p-4 rounded-2xl border-2 border-duoGray bg-white shadow-sm space-y-2";
+                card.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="bg-gray-100 text-gray-600 text-xs font-black px-2.5 py-0.5 rounded-full uppercase">Item #${item.id}</span>
+                        <span class="text-xs font-extrabold text-duoCyan">${item.category}</span>
+                    </div>
+                    <h4 class="font-extrabold text-duoDark text-base">${item.q}</h4>
+                    <div class="bg-green-50 p-2.5 rounded-xl border border-green-200 text-xs font-bold text-green-900">
+                        <i class="fa-solid fa-check text-duoGreen mr-1"></i> Solution: <span class="font-black">${item.answer}</span>
+                    </div>
+                    <p class="text-xs text-gray-500 font-semibold leading-relaxed">${item.explanation}</p>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Variable Reward Chest Modal
+        function triggerRewardModal() {
+            audio.playBonus();
+            userStats.xp += 15;
+            updateStatsDisplay();
+            document.getElementById('reward-modal').classList.remove('hidden');
+        }
+
+        function closeRewardModal() {
+            document.getElementById('reward-modal').classList.add('hidden');
+        }
+
+        // Game Over & Heart Practice Refill
+        function showGameOver() {
+            document.getElementById('gameover-modal').classList.remove('hidden');
+        }
+
+        function refillHeartsPractice() {
+            userStats.hearts = userStats.maxHearts;
+            updateStatsDisplay();
+            document.getElementById('gameover-modal').classList.add('hidden');
+            buildQueue();
+            renderQuestion();
+        }
+
+        function resetLessonSession() {
+            currentQueueIndex = 0;
+            buildQueue();
+            renderQuestion();
+        }
+
+        // View Switcher
+        function switchTab(tabId) {
+            ['learn', 'hlr', 'leaderboard', 'vault'].forEach(t => {
+                document.getElementById(`view-${t}`).classList.add('hidden');
+                const btn = document.getElementById(`tab-${t}`);
+                if (btn) {
+                    btn.classList.remove('border-duoGreen', 'text-duoGreen');
+                    btn.classList.add('border-transparent');
+                }
+            });
+
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.add('border-duoGreen', 'text-duoGreen');
+                activeBtn.classList.remove('border-transparent');
+            }
+
+            if (tabId === 'hlr') renderHLRDashboard();
+            if (tabId === 'leaderboard') renderLeaderboard();
+        }
+    </script>
+</body>
+</html>
